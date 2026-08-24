@@ -25,8 +25,10 @@ Firebase (below).
    the `firebaseConfig` object it shows into `src/firebase-config.js`, replacing the
    `PASTE_ME` values.
 5. In **Firestore → Rules**, paste the contents of `firestore.rules` from this folder and
-   publish. This limits reading/writing to signed-in users so random people can't touch
-   your data.
+   publish. Activities are world-readable (for the public calendar); writing requires a
+   signed-in account whose email is on the committee roster (the app maintains a
+   `roster/{email}` allowlist doc per member — sign in once as an existing member
+   before publishing these rules so the allowlist is backfilled).
 
 Restart `npm run dev` and the demo-mode banner disappears. Everyone signs in with Google;
 add each committee member's Gmail on the Committee page so their checkoffs match up.

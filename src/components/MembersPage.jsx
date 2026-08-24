@@ -29,7 +29,7 @@ export default function MembersPage({ members, activities, store }) {
             leadId: null,
           })
         )
-      store.deleteMember(m.id)
+      store.deleteMember(m.id, m.email)
     }
   }
 

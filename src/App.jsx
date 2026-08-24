@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getStore } from './store/index.js'
 import Header from './components/Header.jsx'
 import ActivityList from './components/ActivityList.jsx'
@@ -59,6 +59,15 @@ export default function App() {
     }
     return store.subscribeMembers(setMembers)
   }, [store, committee])
+
+  // Once per session, make sure every member's roster doc exists (write access
+  // is gated on those docs — see firestore.rules).
+  const rosterSynced = useRef(false)
+  useEffect(() => {
+    if (!committee || !store.syncRoster || rosterSynced.current || members.length === 0) return
+    rosterSynced.current = true
+    store.syncRoster(members).catch((e) => console.warn('[roster] sync failed:', e))
+  }, [committee, store, members])
 
   if (!store || !authReady) return null
 

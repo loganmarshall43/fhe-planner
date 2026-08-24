@@ -1,15 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Activities are world-readable so the public calendar works without sign-in.
-    // Only signed-in users (the committee) can create or change them.
+    // Committee = the standing leader account below, plus any signed-in Google
+    // account whose (verified) email has a doc in the roster collection.
+    // The app maintains roster docs from the Committee page; the hardcoded
+    // leader email guarantees the leader can never be locked out.
+    function onRoster() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email_verified
+        && (request.auth.token.email.lower() == 'loganmarshall43@gmail.com'
+            || exists(/databases/$(database)/documents/roster/$(request.auth.token.email.lower())));
+    }
+
+    // Activities are world-readable (public calendar); only the committee edits.
     match /activities/{doc} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if onRoster();
     }
-    // The roster (names + emails) stays committee-only.
+    // Roster names/emails are committee-only.
     match /members/{doc} {
-      allow read, write: if request.auth != null;
+      allow read, write: if onRoster();
+    }
+    // The allowlist itself: never client-readable (rules' exists() works without
+    // read access), writable only by existing committee.
+    match /roster/{email} {
+      allow read: if false;
+      allow write: if onRoster();
     }
   }
 }

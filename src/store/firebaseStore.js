@@ -6,6 +6,7 @@ import {
   collection,
   onSnapshot,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   doc,
@@ -31,6 +32,9 @@ const init = () => {
 }
 
 const col = (name) => collection(db, name)
+
+// Roster doc ids are lowercased emails, matching the rules' email.lower() check.
+const rosterId = (email) => (email || '').trim().toLowerCase()
 
 const subscribe = (name, cb, order) => {
   init()
@@ -74,10 +78,30 @@ export const firebaseStore = {
   async addMember(data) {
     init()
     const ref = await addDoc(col('members'), { role: 'member', ...data })
+    const rid = rosterId(data.email)
+    if (rid) await setDoc(doc(db, 'roster', rid), { name: data.name || '' })
     return ref.id
   },
   updateMember: (id, patch) => (init(), updateDoc(doc(db, 'members', id), patch)),
-  deleteMember: (id) => (init(), deleteDoc(doc(db, 'members', id))),
+  async deleteMember(id, email) {
+    init()
+    await deleteDoc(doc(db, 'members', id))
+    const rid = rosterId(email)
+    if (rid) await deleteDoc(doc(db, 'roster', rid))
+  },
+
+  // Firestore rules gate writes on roster/{email} existing, so keep a roster doc
+  // per member email. Run at sign-in to backfill members created before this existed.
+  async syncRoster(members) {
+    init()
+    const withEmail = members.filter((m) => rosterId(m.email))
+    await Promise.all(
+      withEmail.map((m) =>
+        setDoc(doc(db, 'roster', rosterId(m.email)), { name: m.name || '' }, { merge: true })
+      )
+    )
+    if (withEmail.length) console.log(`[roster] synced ${withEmail.length} member(s)`)
+  },
 
   async signInWithGoogle() {
     init()
