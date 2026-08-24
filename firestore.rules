@@ -1,12 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Any signed-in Google user can read/write. For a ward committee tool this is
-    // usually enough; to lock it to the roster, tighten the write rule to check
-    // request.auth.token.email against the members collection.
+    // Activities are world-readable so the public calendar works without sign-in.
+    // Only signed-in users (the committee) can create or change them.
     match /activities/{doc} {
-      allow read, write: if request.auth != null;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
+    // The roster (names + emails) stays committee-only.
     match /members/{doc} {
       allow read, write: if request.auth != null;
     }

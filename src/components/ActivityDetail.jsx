@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { fmtDate, fmtTime, uid } from '../utils.js'
+import { fmtRange, uid, getLeadIds } from '../utils.js'
 import ActivityForm from './ActivityForm.jsx'
+import TypeBadge from './TypeBadge.jsx'
 
 export default function ActivityDetail({ activity: a, members, store, user, onBack, onDuplicate }) {
   const [editing, setEditing] = useState(false)
-  const lead = members.find((m) => m.id === a.leadId)
+  const leads = getLeadIds(a)
+    .map((id) => members.find((m) => m.id === id))
+    .filter(Boolean)
 
   const updateList = (key, items) => store.updateActivity(a.id, { [key]: items })
 
@@ -41,12 +44,18 @@ export default function ActivityDetail({ activity: a, members, store, user, onBa
       </button>
 
       <div className="card detail-head">
-        <h2>{a.title}</h2>
+        <h2>
+          {a.title}
+          <TypeBadge type={a.type} />
+        </h2>
         <div className="meta">
-          <span>📅 {fmtDate(a.date)}</span>
-          {a.time && <span>🕖 {fmtTime(a.time)}</span>}
+          <span>📅 {fmtRange(a)}</span>
           {a.location && <span>📍 {a.location}</span>}
-          {lead && <span className="pill lead">Lead: {lead.name}</span>}
+          {leads.length > 0 && (
+            <span className="pill lead">
+              {leads.length > 1 ? 'Assigned' : 'Lead'}: {leads.map((m) => m.name).join(', ')}
+            </span>
+          )}
         </div>
         {a.description && <p className="desc">{a.description}</p>}
         <div className="detail-actions">

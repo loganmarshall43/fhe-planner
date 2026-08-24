@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { initials } from '../utils.js'
+import { initials, getLeadIds } from '../utils.js'
 
 export default function MembersPage({ members, activities, store }) {
   const [name, setName] = useState('')
@@ -13,17 +13,22 @@ export default function MembersPage({ members, activities, store }) {
     setEmail('')
   }
 
-  const leadCount = (id) => activities.filter((a) => a.leadId === id).length
+  const leadCount = (id) => activities.filter((a) => getLeadIds(a).includes(id)).length
 
   const remove = (m) => {
     const n = leadCount(m.id)
     const warning = n
-      ? `Remove ${m.name}? They're the lead on ${n} activit${n === 1 ? 'y' : 'ies'} (those will become unassigned).`
+      ? `Remove ${m.name}? They're assigned to ${n} activit${n === 1 ? 'y' : 'ies'} (they'll be unassigned).`
       : `Remove ${m.name} from the committee?`
     if (confirm(warning)) {
       activities
-        .filter((a) => a.leadId === m.id)
-        .forEach((a) => store.updateActivity(a.id, { leadId: null }))
+        .filter((a) => getLeadIds(a).includes(m.id))
+        .forEach((a) =>
+          store.updateActivity(a.id, {
+            leadIds: getLeadIds(a).filter((id) => id !== m.id),
+            leadId: null,
+          })
+        )
       store.deleteMember(m.id)
     }
   }

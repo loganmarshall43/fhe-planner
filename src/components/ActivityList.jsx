@@ -1,38 +1,72 @@
-import { fmtDate, fmtTime, todayISO } from '../utils.js'
+import { fmtRange, isPast, getLeadIds } from '../utils.js'
+import TypeBadge from './TypeBadge.jsx'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-export default function ActivityList({ activities, members, onOpen, onNew }) {
-  const today = todayISO()
+export default function ActivityList({ activities, members, user, onOpen, onNew }) {
   const upcoming = activities
-    .filter((a) => !a.date || a.date >= today)
+    .filter((a) => !isPast(a))
     .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+
+  // "Me" = the roster member whose email matches the signed-in Google account.
+  const email = (user?.email || '').trim().toLowerCase()
+  const me = email
+    ? members.find((m) => (m.email || '').trim().toLowerCase() === email)
+    : null
+  const mine = me ? upcoming.filter((a) => getLeadIds(a).includes(me.id)) : []
+  const rest = mine.length ? upcoming.filter((a) => !getLeadIds(a).includes(me.id)) : upcoming
+
+  const newBtn = (
+    <button className="btn primary" onClick={onNew}>
+      + New Activity
+    </button>
+  )
 
   return (
     <div>
-      <div className="page-head">
+      {mine.length > 0 && (
+        <>
+          <div className="page-head">
+            <h2>My Assignments</h2>
+            <span className="spacer" />
+            {newBtn}
+          </div>
+          {mine.map((a) => (
+            <ActivityCard key={a.id} activity={a} members={members} onOpen={onOpen} />
+          ))}
+        </>
+      )}
+
+      <div className="page-head" style={mine.length ? { marginTop: 28 } : undefined}>
         <h2>Upcoming Activities</h2>
-        <span className="spacer" />
-        <button className="btn primary" onClick={onNew}>
-          + New Activity
-        </button>
+        {mine.length === 0 && (
+          <>
+            <span className="spacer" />
+            {newBtn}
+          </>
+        )}
       </div>
 
-      {upcoming.length === 0 && (
-        <div className="empty">
-          Nothing planned yet. Click <strong>New Activity</strong> to add one, or bring back a
-          favorite from <strong>History</strong>.
-        </div>
-      )}
-      {upcoming.map((a) => (
-        <ActivityCard key={a.id} activity={a} members={members} onOpen={onOpen} past={false} />
+      {rest.length === 0 &&
+        (mine.length > 0 ? (
+          <p style={{ color: 'var(--ink-soft)' }}>No other upcoming activities.</p>
+        ) : (
+          <div className="empty">
+            Nothing planned yet. Click <strong>New Activity</strong> to add one, or bring back a
+            favorite from <strong>History</strong>.
+          </div>
+        ))}
+      {rest.map((a) => (
+        <ActivityCard key={a.id} activity={a} members={members} onOpen={onOpen} />
       ))}
     </div>
   )
 }
 
-function ActivityCard({ activity: a, members, onOpen, past }) {
-  const lead = members.find((m) => m.id === a.leadId)
+function ActivityCard({ activity: a, members, onOpen, past = false }) {
+  const leads = getLeadIds(a)
+    .map((id) => members.find((m) => m.id === id))
+    .filter(Boolean)
   const [, month, day] = (a.date || '').split('-').map(Number)
 
   const supplies = a.supplies || []
@@ -49,14 +83,20 @@ function ActivityCard({ activity: a, members, onOpen, past }) {
         <div className="day">{day || '?'}</div>
       </div>
       <div className="body">
-        <h3>{a.title}</h3>
+        <h3>
+          {a.title}
+          <TypeBadge type={a.type} />
+        </h3>
         <div className="meta">
-          {fmtDate(a.date)}
-          {a.time ? ` · ${fmtTime(a.time)}` : ''}
+          {fmtRange(a)}
           {a.location ? ` · ${a.location}` : ''}
         </div>
         <div className="progress">
-          {lead && <span className="pill lead">Lead: {lead.name}</span>}
+          {leads.length > 0 && (
+            <span className="pill lead">
+              {leads.length > 1 ? 'Assigned' : 'Lead'}: {leads.map((m) => m.name).join(', ')}
+            </span>
+          )}
           {supplies.length > 0 && (
             <span className={`pill ${sDone < supplies.length ? 'warn' : ''}`}>
               Supplies {sDone}/{supplies.length}

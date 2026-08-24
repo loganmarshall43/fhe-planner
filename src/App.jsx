@@ -6,6 +6,7 @@ import ActivityForm from './components/ActivityForm.jsx'
 import ActivityDetail from './components/ActivityDetail.jsx'
 import MembersPage from './components/MembersPage.jsx'
 import HistoryPage from './components/HistoryPage.jsx'
+import PublicCalendar from './components/PublicCalendar.jsx'
 
 export default function App() {
   const [store, setStore] = useState(null)
@@ -43,35 +44,40 @@ export default function App() {
     return () => unsub && unsub()
   }, [])
 
-  // Firestore rules require sign-in, so only subscribe to data once we have a user
-  // (local mode has no such restriction).
-  const canRead = store && (store.mode === 'local' || user)
+  // Activities are world-readable (the public calendar); the members roster is
+  // committee-only, so it's subscribed only once someone is signed in.
   useEffect(() => {
-    if (!canRead) {
-      setActivities([])
+    if (!store) return
+    return store.subscribeActivities(setActivities)
+  }, [store])
+
+  const committee = store && (store.mode === 'local' || Boolean(user))
+  useEffect(() => {
+    if (!committee) {
       setMembers([])
       return
     }
-    const unsubs = [store.subscribeActivities(setActivities), store.subscribeMembers(setMembers)]
-    return () => unsubs.forEach((u) => u && u())
-  }, [store, canRead])
+    return store.subscribeMembers(setMembers)
+  }, [store, committee])
 
   if (!store || !authReady) return null
 
-  if (!canRead) {
+  if (!committee) {
     return (
       <>
-        <Header view={view} setView={changeView} store={store} user={user} members={members} />
-        <main className="container">
-          <div className="empty">
-            <p style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink)' }}>
-              Welcome to the 4th Ward FHE Planner
-            </p>
-            <p>Sign in with your Google account to see the activity catalog.</p>
-            <button className="btn primary" onClick={() => store.signInWithGoogle()}>
-              Sign in with Google
+        <header className="app-header">
+          <h1>
+            Ward Activities
+            <span className="ward">Cedar City YSA 4th Ward</span>
+          </h1>
+          <nav>
+            <button className="nav-btn" onClick={() => store.signInWithGoogle()}>
+              Committee sign in
             </button>
-          </div>
+          </nav>
+        </header>
+        <main className="container">
+          <PublicCalendar activities={activities} />
         </main>
       </>
     )
@@ -93,6 +99,7 @@ export default function App() {
           <ActivityList
             activities={activities}
             members={members}
+            user={user}
             onNew={() => setView('new')}
             onOpen={openActivity}
           />

@@ -50,5 +50,8 @@ that domain under **Authentication → Settings → Authorized domains** (it usu
 - `src/store/localStore.js` — browser-only backend (demo mode)
 - `src/store/firebaseStore.js` — Firestore backend (shared mode)
 - `src/components/` — the UI (activity list, form, detail with checklists, committee roster)
-- Data model: `activities` (title, date, time, location, description, leadId, supplies[],
-  setupTasks[]) and `members` (name, email, role) collections.
+- Data model: `activities` (title, type, date, time, endTime, location, description,
+  leadIds[], supplies[], setupTasks[]) and `members` (name, email, role) collections.
+  The signed-in user is matched to a member by email; activities they're assigned to
+  appear under "My Assignments". Signed-out visitors see the read-only public calendar
+  (activities are world-readable per `firestore.rules`; the roster is committee-only).

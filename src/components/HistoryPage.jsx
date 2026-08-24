@@ -1,12 +1,12 @@
-import { fmtDate, todayISO } from '../utils.js'
+import { fmtDate, isPast, getLeadIds } from '../utils.js'
+import TypeBadge from './TypeBadge.jsx'
 
 // Scrollable record of everything the ward has done, newest first.
 // "Use Again" starts a new activity from that one — supplies and setup carry over.
 export default function HistoryPage({ activities, members, onOpen, onDuplicate }) {
-  const today = todayISO()
   const past = activities
-    .filter((a) => a.date && a.date < today)
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .filter((a) => isPast(a))
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
 
   return (
     <div>
@@ -21,15 +21,20 @@ export default function HistoryPage({ activities, members, onOpen, onDuplicate }
         </div>
       ) : (
         past.map((a) => {
-          const lead = members.find((m) => m.id === a.leadId)
+          const leads = getLeadIds(a)
+            .map((id) => members.find((m) => m.id === id))
+            .filter(Boolean)
           const nItems = (a.supplies || []).length + (a.setupTasks || []).length
           return (
             <div key={a.id} className="card activity-card" onClick={() => onOpen(a.id)}>
               <div className="body">
-                <h3>{a.title}</h3>
+                <h3>
+                  {a.title}
+                  <TypeBadge type={a.type} />
+                </h3>
                 <div className="meta">
                   Used {fmtDate(a.date)}
-                  {lead ? ` · led by ${lead.name}` : ''}
+                  {leads.length ? ` · led by ${leads.map((m) => m.name).join(', ')}` : ''}
                   {nItems ? ` · ${nItems} supply & setup items saved` : ''}
                 </div>
               </div>
