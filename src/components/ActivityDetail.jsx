@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { fmtDate, fmtTime, uid } from '../utils.js'
 import ActivityForm from './ActivityForm.jsx'
 
-export default function ActivityDetail({ activity: a, members, store, user, onBack }) {
+export default function ActivityDetail({ activity: a, members, store, user, onBack, onDuplicate }) {
   const [editing, setEditing] = useState(false)
   const lead = members.find((m) => m.id === a.leadId)
 
@@ -52,6 +52,9 @@ export default function ActivityDetail({ activity: a, members, store, user, onBa
         <div className="detail-actions">
           <button className="btn small" onClick={() => setEditing(true)}>
             Edit details
+          </button>
+          <button className="btn small" onClick={() => onDuplicate(a)}>
+            Use Again
           </button>
           <button className="btn small danger" onClick={remove}>
             Delete

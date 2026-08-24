@@ -5,14 +5,29 @@ import ActivityList from './components/ActivityList.jsx'
 import ActivityForm from './components/ActivityForm.jsx'
 import ActivityDetail from './components/ActivityDetail.jsx'
 import MembersPage from './components/MembersPage.jsx'
+import HistoryPage from './components/HistoryPage.jsx'
 
 export default function App() {
   const [store, setStore] = useState(null)
   const [activities, setActivities] = useState([])
   const [members, setMembers] = useState([])
   const [user, setUser] = useState(null)
-  const [view, setView] = useState('list') // 'list' | 'new' | 'detail' | 'members'
+  const [view, setView] = useState('list') // 'list' | 'new' | 'detail' | 'members' | 'history'
   const [activityId, setActivityId] = useState(null)
+  const [template, setTemplate] = useState(null) // activity being duplicated via "Use Again"
+
+  const openActivity = (id) => {
+    setActivityId(id)
+    setView('detail')
+  }
+  const duplicate = (activity) => {
+    setTemplate(activity)
+    setView('new')
+  }
+  const changeView = (v) => {
+    if (v !== 'new') setTemplate(null)
+    setView(v)
+  }
 
   const [authReady, setAuthReady] = useState(false)
 
@@ -46,7 +61,7 @@ export default function App() {
   if (!canRead) {
     return (
       <>
-        <Header view={view} setView={setView} store={store} user={user} members={members} />
+        <Header view={view} setView={changeView} store={store} user={user} members={members} />
         <main className="container">
           <div className="empty">
             <p style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink)' }}>
@@ -66,7 +81,7 @@ export default function App() {
 
   return (
     <>
-      <Header view={view} setView={setView} store={store} user={user} members={members} />
+      <Header view={view} setView={changeView} store={store} user={user} members={members} />
       {store.mode === 'local' && (
         <div className="mode-banner">
           <strong>Local demo mode</strong> — data is saved only in this browser. Add your Firebase
@@ -79,25 +94,32 @@ export default function App() {
             activities={activities}
             members={members}
             onNew={() => setView('new')}
-            onOpen={(id) => {
-              setActivityId(id)
-              setView('detail')
-            }}
+            onOpen={openActivity}
+          />
+        )}
+
+        {view === 'history' && (
+          <HistoryPage
+            activities={activities}
+            members={members}
+            onOpen={openActivity}
+            onDuplicate={duplicate}
           />
         )}
 
         {view === 'new' && (
           <div>
             <div className="page-head">
-              <h2>New Activity</h2>
+              <h2>{template ? `Plan “${template.title}” Again` : 'New Activity'}</h2>
             </div>
             <ActivityForm
+              template={template}
               members={members}
-              onCancel={() => setView('list')}
+              onCancel={() => changeView('list')}
               onSave={async (data) => {
                 const id = await store.addActivity(data)
-                setActivityId(id)
-                setView('detail')
+                setTemplate(null)
+                openActivity(id)
               }}
             />
           </div>
@@ -110,7 +132,8 @@ export default function App() {
               members={members}
               store={store}
               user={user}
-              onBack={() => setView('list')}
+              onBack={() => changeView('list')}
+              onDuplicate={duplicate}
             />
           ) : (
             <div className="empty">That activity no longer exists.</div>

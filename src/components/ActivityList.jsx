@@ -4,9 +4,9 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 export default function ActivityList({ activities, members, onOpen, onNew }) {
   const today = todayISO()
-  const sorted = [...activities].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
-  const upcoming = sorted.filter((a) => !a.date || a.date >= today)
-  const past = sorted.filter((a) => a.date && a.date < today).reverse()
+  const upcoming = activities
+    .filter((a) => !a.date || a.date >= today)
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
 
   return (
     <div>
@@ -20,23 +20,13 @@ export default function ActivityList({ activities, members, onOpen, onNew }) {
 
       {upcoming.length === 0 && (
         <div className="empty">
-          Nothing planned yet. Click <strong>New Activity</strong> to add your first one.
+          Nothing planned yet. Click <strong>New Activity</strong> to add one, or bring back a
+          favorite from <strong>History</strong>.
         </div>
       )}
       {upcoming.map((a) => (
         <ActivityCard key={a.id} activity={a} members={members} onOpen={onOpen} past={false} />
       ))}
-
-      {past.length > 0 && (
-        <>
-          <div className="page-head" style={{ marginTop: 32 }}>
-            <h2>Past Activities</h2>
-          </div>
-          {past.map((a) => (
-            <ActivityCard key={a.id} activity={a} members={members} onOpen={onOpen} past />
-          ))}
-        </>
-      )}
     </div>
   )
 }

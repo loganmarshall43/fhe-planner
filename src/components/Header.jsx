@@ -13,6 +13,12 @@ export default function Header({ view, setView, store, user, members }) {
           Activities
         </button>
         <button
+          className={`nav-btn ${view === 'history' ? 'active' : ''}`}
+          onClick={() => setView('history')}
+        >
+          History
+        </button>
+        <button
           className={`nav-btn ${view === 'members' ? 'active' : ''}`}
           onClick={() => setView('members')}
         >

@@ -8,17 +8,22 @@ const linesToItems = (text) =>
     .filter(Boolean)
     .map((text) => ({ id: uid(), text, done: false, doneBy: null }))
 
-export default function ActivityForm({ initial, members, onSave, onCancel }) {
+const itemsToLines = (items) => (items || []).map((i) => i.text).join('\n')
+
+// `initial` = editing an existing activity; `template` = duplicating one (prefill
+// everything except date and lead, with checklists reset).
+export default function ActivityForm({ initial, template, members, onSave, onCancel }) {
   const editing = Boolean(initial)
+  const source = initial || template
   const [form, setForm] = useState({
-    title: initial?.title || '',
+    title: source?.title || '',
     date: initial?.date || '',
-    time: initial?.time || '19:00',
-    location: initial?.location || '',
-    description: initial?.description || '',
+    time: source?.time || '19:00',
+    location: source?.location || '',
+    description: source?.description || '',
     leadId: initial?.leadId || '',
-    suppliesText: '',
-    setupText: '',
+    suppliesText: template ? itemsToLines(template.supplies) : '',
+    setupText: template ? itemsToLines(template.setupTasks) : '',
   })
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
